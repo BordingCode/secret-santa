@@ -111,7 +111,7 @@
       LS.set('exclusions', exclusions);
       initExclusionsSection();
       goScreen('exclusions');
-    });
+    };
 
     function renderParticipantInputs() {
       list.innerHTML = '';
@@ -177,7 +177,7 @@
       exclusions.push([a, b]);
       LS.set('exclusions', exclusions);
       renderExclusions();
-    });
+    };
 
     btnDraw.onclick = () => {
       hideError(error);
@@ -191,7 +191,7 @@
       const encoded = encode(data);
       const shareUrl = location.origin + location.pathname + '#/g/' + encoded;
       showShareScreen(shareUrl, groupName);
-    });
+    };
 
     function renderExclusions() {
       chips.innerHTML = '';
