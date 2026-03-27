@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#B22234">
+  <title>Secret Santa</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+  <link rel="stylesheet" href="css/theme.css?v=1">
+  <link rel="stylesheet" href="css/layout.css?v=1">
+  <link rel="stylesheet" href="css/screens.css?v=1">
+</head>
+<body>
+
+  <!-- Home Screen -->
+  <div id="screen-home" class="screen active">
+    <div class="home-icon">🎁</div>
+    <h1 class="home-title">Secret Santa</h1>
+    <p class="home-subtitle">Organiser en julegave-lodtrækning</p>
+    <div class="home-buttons">
+      <button id="btn-create" class="btn btn-primary btn-lg btn-block">Opret ny lodtrækning</button>
+      <button id="btn-join" class="btn btn-outline btn-lg btn-block">Deltag i eksisterende</button>
+    </div>
+  </div>
+
+  <!-- Create Screen -->
+  <div id="screen-create" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goScreen('home')">&larr;</button>
+      <h1>Opret lodtrækning</h1>
+    </div>
+
+    <div class="group-name-section">
+      <label for="group-name">Navn på lodtrækning</label>
+      <input id="group-name" type="text" class="input" placeholder="F.eks. Familie 2026">
+    </div>
+
+    <div class="participants-section">
+      <h2>Deltagere</h2>
+      <div id="participant-list" class="participant-list"></div>
+      <button id="btn-add-participant" class="btn-add">+ Tilføj deltager</button>
+    </div>
+
+    <div id="create-error" class="error-msg"></div>
+    <div class="mt-auto" style="padding-top:16px">
+      <button id="btn-next-exclusions" class="btn btn-gold btn-block btn-lg">Næste</button>
+    </div>
+  </div>
+
+  <!-- Exclusions Screen -->
+  <div id="screen-exclusions" class="screen">
+    <div class="screen-header">
+      <button id="btn-back-create" class="btn-back">&larr;</button>
+      <h1>Undtagelser</h1>
+    </div>
+
+    <div class="exclusions-section">
+      <p>Vælg par der ikke må trække hinanden (f.eks. kærestepar)</p>
+      <div id="exclusion-chips" class="exclusion-chips"></div>
+      <div class="exclusion-add">
+        <select id="excl-a" class="input"></select>
+        <span class="exclusion-arrow">&harr;</span>
+        <select id="excl-b" class="input"></select>
+        <button id="btn-add-exclusion" class="btn btn-outline">+</button>
+      </div>
+    </div>
+
+    <div id="exclusions-error" class="error-msg"></div>
+    <div class="spacer"></div>
+    <button id="btn-draw" class="btn btn-primary btn-block btn-lg">Træk!</button>
+  </div>
+
+  <!-- Share Screen -->
+  <div id="screen-share" class="screen">
+    <div class="screen-header">
+      <h1 id="share-group-name">Secret Santa</h1>
+    </div>
+
+    <p class="share-info">Lodtrækningen er klar! Del linket nedenfor med alle deltagere. Hver person trykker på sit eget navn for at se, hvem de skal finde gave til.</p>
+
+    <div class="share-link-box" id="share-link-text"></div>
+
+    <div class="share-buttons">
+      <button id="btn-copy-link" class="btn btn-gold">Kopier link</button>
+      <button id="btn-share-link" class="btn btn-secondary">Del</button>
+    </div>
+
+    <p id="copy-feedback" class="copy-feedback text-center" style="opacity:0">&nbsp;</p>
+
+    <div class="spacer"></div>
+    <button id="btn-new-draw" class="btn btn-danger btn-block">Ny lodtrækning</button>
+  </div>
+
+  <!-- Participants Screen (join flow) -->
+  <div id="screen-participants" class="screen">
+    <div style="margin-bottom:8px">
+      <div class="home-icon">🎁</div>
+    </div>
+    <h1 class="participants-title" id="group-title">Secret Santa</h1>
+    <p class="participants-subtitle">Tryk på dit navn for at se, hvem du er Secret Santa for</p>
+    <div id="name-grid" class="name-grid"></div>
+  </div>
+
+  <!-- Reveal Screen -->
+  <div id="screen-reveal" class="screen">
+    <canvas id="snow-canvas"></canvas>
+    <div class="reveal-content">
+      <div id="gift-box" class="gift-box">
+        <div class="gift-bow"></div>
+        <div class="gift-lid"></div>
+        <div class="gift-base"></div>
+      </div>
+      <p class="reveal-for" id="reveal-for"><span id="reveal-giver"></span>, du er Secret Santa for:</p>
+      <h1 class="reveal-name" id="reveal-recipient"></h1>
+      <p class="reveal-label" id="reveal-label">God julegavejagt! 🎄</p>
+      <button id="btn-reveal" class="btn btn-gold btn-lg btn-reveal">Tryk for at afsløre</button>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <h2>Er det dig?</h2>
+      <p>Er du <strong id="modal-name"></strong>?</p>
+      <div class="modal-buttons">
+        <button id="modal-no" class="btn btn-outline">Nej</button>
+        <button id="modal-yes" class="btn btn-primary">Ja, det er mig</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>
