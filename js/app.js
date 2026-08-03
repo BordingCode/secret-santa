@@ -211,11 +211,10 @@
     }
 
     function populateSelects() {
+      const options = '<option value="">Vælg...</option>' +
+        participants.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('');
       [selA, selB].forEach(sel => {
-        sel.innerHTML = '<option value="">Vælg...</option>';
-        participants.forEach(name => {
-          sel.innerHTML += `<option value="${escHtml(name)}">${escHtml(name)}</option>`;
-        });
+        sel.innerHTML = options;
       });
     }
   }
