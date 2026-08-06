@@ -42,25 +42,42 @@
       goScreen('create');
     });
     document.getElementById('btn-join').addEventListener('click', () => {
-      const link = prompt('Indsæt det delte link her:');
-      if (link) {
-        try {
-          const url = new URL(link);
-          const hash = url.hash;
-          if (hash.startsWith('#/g/')) {
-            location.hash = hash;
-          } else {
-            alert('Ugyldigt link. Sørg for at kopiere hele linket.');
-          }
-        } catch {
-          if (link.startsWith('#/g/')) {
-            location.hash = link;
-          } else {
-            alert('Ugyldigt link. Sørg for at kopiere hele linket.');
-          }
-        }
-      }
+      initJoinScreen();
+      goScreen('join');
     });
+  }
+
+  // ── Join Screen ──
+  function initJoinScreen() {
+    const input = document.getElementById('join-link');
+    const btn = document.getElementById('btn-join-continue');
+    const error = document.getElementById('join-error');
+
+    input.value = '';
+    hideError(error);
+    setTimeout(() => input.focus(), 50);
+
+    function tryJoin() {
+      const link = input.value.trim();
+      if (!link) return;
+      let hash = null;
+      try {
+        hash = new URL(link).hash;
+      } catch {
+        hash = link;
+      }
+      if (hash && hash.startsWith('#/g/')) {
+        hideError(error);
+        location.hash = hash;
+      } else {
+        showError(error, 'Ugyldigt link. Sørg for at kopiere hele linket.');
+      }
+    }
+
+    btn.onclick = tryJoin;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') tryJoin();
+    };
   }
 
   // ── Create Screen ──

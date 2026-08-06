@@ -51,6 +51,24 @@
     </div>
   </div>
 
+  <!-- Join Screen -->
+  <div id="screen-join" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goScreen('home')">&larr;</button>
+      <h1>Deltag i lodtrækning</h1>
+    </div>
+
+    <div class="group-name-section">
+      <label for="join-link">Indsæt det delte link</label>
+      <input id="join-link" type="text" class="input" placeholder="https://…#/g/…">
+    </div>
+
+    <div id="join-error" class="error-msg"></div>
+    <div class="mt-auto" style="padding-top:16px">
+      <button id="btn-join-continue" class="btn btn-gold btn-block btn-lg">Fortsæt</button>
+    </div>
+  </div>
+
   <!-- Exclusions Screen -->
   <div id="screen-exclusions" class="screen">
     <div class="screen-header">
@@ -133,7 +151,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>
