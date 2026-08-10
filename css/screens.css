@@ -32,6 +32,18 @@
   max-width: 320px;
 }
 
+.resume-banner {
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+
+.resume-banner p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+}
+
 /* ── Create Screen ── */
 .group-name-section {
   margin-bottom: 24px;

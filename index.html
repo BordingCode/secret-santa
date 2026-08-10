@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   <link rel="stylesheet" href="css/theme.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=2">
-  <link rel="stylesheet" href="css/screens.css?v=2">
+  <link rel="stylesheet" href="css/screens.css?v=3">
 </head>
 <body>
 
@@ -21,6 +21,10 @@
     <div class="home-icon">🎁</div>
     <h1 class="home-title">Secret Santa</h1>
     <p class="home-subtitle">Organiser en julegave-lodtrækning</p>
+    <div id="resume-draw-banner" class="card resume-banner" style="display:none">
+      <p id="resume-draw-text"></p>
+      <button id="btn-resume-draw" class="btn btn-outline btn-block">Se linket igen</button>
+    </div>
     <div class="home-buttons">
       <button id="btn-create" class="btn btn-primary btn-lg btn-block">Opret ny lodtrækning</button>
       <button id="btn-join" class="btn btn-outline btn-lg btn-block">Deltag i eksisterende</button>
@@ -151,7 +155,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=4"></script>
+  <script src="js/app.js?v=5"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>

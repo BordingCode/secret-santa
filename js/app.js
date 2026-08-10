@@ -35,8 +35,29 @@
     }
   }
 
+  // An unshared draw is only worth resurfacing for a little while — after
+  // that it's more likely stale clutter than something Mathias is about to share.
+  const RESUME_DRAW_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+  function showResumeBanner() {
+    const banner = document.getElementById('resume-draw-banner');
+    const last = LS.get('lastDraw');
+    if (!last || (Date.now() - last.ts) > RESUME_DRAW_MAX_AGE_MS) {
+      banner.style.display = 'none';
+      return;
+    }
+    const when = new Date(last.ts).toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' });
+    document.getElementById('resume-draw-text').textContent =
+      `Du har en trækning fra ${when} du ikke har delt endnu.`;
+    banner.style.display = '';
+    document.getElementById('btn-resume-draw').onclick = () => {
+      showShareScreen(last.url, last.groupName);
+    };
+  }
+
   // ── Home Screen ──
   function initHome() {
+    showResumeBanner();
     document.getElementById('btn-create').addEventListener('click', () => {
       initCreateScreen();
       goScreen('create');
@@ -207,6 +228,7 @@
       const data = { name: groupName, a: result.map(r => [r.giver, r.recipient]) };
       const encoded = encode(data);
       const shareUrl = location.origin + location.pathname + '#/g/' + encoded;
+      LS.set('lastDraw', { url: shareUrl, groupName, ts: Date.now() });
       showShareScreen(shareUrl, groupName);
     };
 
@@ -269,8 +291,10 @@
 
     document.getElementById('btn-new-draw').onclick = () => {
       if (confirm('Er du sikker? Den nuværende lodtrækning slettes.')) {
+        LS.del('lastDraw');
         location.hash = '';
         goScreen('home');
+        showResumeBanner();
       }
     };
   }
