@@ -220,8 +220,11 @@
     btnDraw.onclick = () => {
       hideError(error);
       const result = performDraw(participants, exclusions);
-      if (!result) {
-        showError(error, 'Lodtrækningen er umulig med disse undtagelser. Prøv at fjerne nogle.');
+      if (!result || result.impossible) {
+        const msg = result && result.impossible
+          ? `${result.impossible} kan ikke give gave til nogen med de nuværende undtagelser — fjern en af ${result.impossible}s undtagelser.`
+          : 'Lodtrækningen er umulig med disse undtagelser. Prøv at fjerne nogle.';
+        showError(error, msg);
         return;
       }
       const groupName = LS.get('groupName') || 'Secret Santa';
@@ -459,7 +462,7 @@
     // Check feasibility
     for (const p of people) {
       const canDraw = people.filter(r => !excluded.get(p).has(r));
-      if (canDraw.length === 0) return null;
+      if (canDraw.length === 0) return { impossible: p };
     }
 
     // Try random shuffle
