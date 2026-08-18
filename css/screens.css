@@ -52,7 +52,7 @@
 .group-name-section label {
   display: block;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: rgba(212, 168, 67, 0.75);
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -65,7 +65,7 @@
 
 .participants-section h2 {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: rgba(212, 168, 67, 0.75);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -110,7 +110,7 @@
 
 .btn-add {
   background: none;
-  border: 2px dashed var(--surface-border);
+  border: 2px dashed rgba(212, 168, 67, 0.35);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   padding: 12px;
@@ -132,7 +132,7 @@
 
 .exclusions-section h2 {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: rgba(212, 168, 67, 0.75);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
