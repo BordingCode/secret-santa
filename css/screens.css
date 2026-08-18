@@ -296,6 +296,13 @@
   z-index: 0;
 }
 
+.reveal-back {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  z-index: 2;
+}
+
 .reveal-content {
   position: relative;
   z-index: 1;
