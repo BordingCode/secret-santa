@@ -1,4 +1,4 @@
-const CACHE = 'secret-santa-v11';
+const CACHE = 'secret-santa-v12';
 const ASSETS = [
   './',
   'index.html',
@@ -13,7 +13,8 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+    // cache: 'reload' goes to the network: the browser's own copy may still be the old version.
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(a => new Request(a, { cache: 'reload' }))))
   );
   self.skipWaiting();
 });
@@ -35,7 +36,8 @@ self.addEventListener('fetch', e => {
   const cleanReq = new Request(url.href, { headers: e.request.headers });
 
   e.respondWith(
-    fetch(cleanReq).then(res => {
+    // cache: 'no-cache' asks the server whether there's a newer file, so an update shows up at once.
+    fetch(cleanReq, { cache: 'no-cache' }).then(res => {
       const clone = res.clone();
       caches.open(CACHE).then(cache => cache.put(cleanReq, clone));
       return res;

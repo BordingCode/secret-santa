@@ -707,7 +707,18 @@
     window.addEventListener('hashchange', handleRoute);
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      const hadWorker = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        // Opening a draw link in a tab that's already open doesn't load the page,
+        // so look for a new version then, and when coming back to the app.
+        const check = () => reg.update().catch(() => {});
+        window.addEventListener('hashchange', check);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+      }).catch(() => {});
+      // A new version took over: load it, unless someone is writing their wishlist.
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadWorker && !document.getElementById('screen-wishlist').classList.contains('active')) location.reload();
+      });
     }
   });
 })();
