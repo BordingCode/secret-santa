@@ -92,3 +92,32 @@ test('server: lists untouched for over a year are removed', async () => {
   assert.equal(await db.get(ID), null);
   assert.equal(await db.get('b'.repeat(64)), 'new');
 });
+
+test('a wish can be just a link, but not nothing or a dangerous link', () => {
+  const list = 'https://onskeskyen.dk/liste/abc';
+  assert.deepEqual(Wishes.cleanItems([{ text: '', url: list }]), [{ text: '', url: list }]);
+  assert.deepEqual(Wishes.cleanItems([{ url: list }]), [{ text: '', url: list }]);
+  assert.deepEqual(Wishes.cleanItems([{ text: '', url: '' }, { url: 'javascript:alert(1)' }]), []);
+  assert.equal(Wishes.siteName('https://www.onskeskyen.dk/liste/abc'), 'onskeskyen.dk');
+});
+
+test('a link wish survives saving and loading', async () => {
+  useServer();
+  const items = [{ text: '', url: 'https://onskeskyen.dk/liste/abc' }];
+  await Wishes.save(LINK, 'Anna', items);
+  assert.deepEqual(await Wishes.load(LINK, 'Anna'), items);
+});
+
+test('the link is picked out of what a share button copies', () => {
+  assert.equal(Wishes.cleanUrl('Se min ønskeliste: https://onskeskyen.dk/liste/abc'), 'https://onskeskyen.dk/liste/abc');
+  assert.equal(Wishes.cleanUrl('javascript:alert(1) https://ok.dk/a'), 'https://ok.dk/a');
+});
+
+test('a link pasted into the wish field is treated as the link', () => {
+  const url = 'https://onskeskyen.dk/liste/abc';
+  assert.deepEqual(Wishes.splitWish(url, ''), { text: '', url });
+  assert.deepEqual(Wishes.splitWish(`Min liste ${url}`, ''), { text: 'Min liste', url });
+  assert.deepEqual(Wishes.splitWish('Blå sokker', ''), { text: 'Blå sokker', url: '' });
+  assert.deepEqual(Wishes.splitWish(url, 'https://andet.dk'), { text: url, url: 'https://andet.dk' }, 'a typed link is left alone');
+});
+

@@ -43,9 +43,12 @@
     return JSON.parse(new TextDecoder().decode(plain));
   }
 
+  const findLink = (s) => (s.match(/https?:\/\/\S+/i) || [''])[0];
+
   /** A safe web address, or '' if empty, or null if it isn't one. */
   function cleanUrl(raw) {
-    const s = String(raw || '').trim();
+    const input = String(raw || '').trim();
+    const s = findLink(input) || input;    // apps often share "See my list: https://…"
     if (!s) return '';
     if (s.length > MAX_URL) return null;
     let u;
@@ -58,10 +61,21 @@
   function cleanItems(value) {
     if (!Array.isArray(value)) return [];
     return value
-      .filter(i => i && typeof i.text === 'string' && i.text.trim())
-      .slice(0, MAX_ITEMS)
-      .map(i => ({ text: i.text.trim().slice(0, MAX_TEXT), url: cleanUrl(i.url) || '' }));
+      .filter(i => i && typeof i === 'object')
+      .map(i => ({ text: typeof i.text === 'string' ? i.text.trim().slice(0, MAX_TEXT) : '', url: cleanUrl(i.url) || '' }))
+      .filter(i => i.text || i.url)            // a wish can be just a link, e.g. to a list elsewhere
+      .slice(0, MAX_ITEMS);
   }
+
+  /** What was typed, with a link pasted into the wish field moved to the link field. */
+  function splitWish(text, url) {
+    const t = String(text || '').trim();
+    const found = String(url || '').trim() ? '' : findLink(t);
+    return found ? { text: t.replace(found, '').trim(), url: found } : { text: t, url: String(url || '').trim() };
+  }
+
+  /** "onskeskyen.dk" from a full address. */
+  const siteName = (url) => new URL(url).hostname.replace(/^www\./, '');
 
   async function call(path, body) {
     const res = await fetch(server() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -79,5 +93,5 @@
     await call('/put', { id: await idFor(link, name), blob: await seal(cleanItems(items), link, name) });
   }
 
-  root.Wishes = { load, save, cleanUrl, cleanItems, idFor, seal, open, MAX_ITEMS, MAX_TEXT, MAX_URL };
+  root.Wishes = { load, save, cleanUrl, cleanItems, splitWish, siteName, idFor, seal, open, MAX_ITEMS, MAX_TEXT, MAX_URL };
 })(globalThis);

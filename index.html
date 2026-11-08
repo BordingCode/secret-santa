@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   <link rel="stylesheet" href="css/theme.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=3">
-  <link rel="stylesheet" href="css/screens.css?v=7">
+  <link rel="stylesheet" href="css/screens.css?v=8">
 </head>
 <body>
 
@@ -165,9 +165,10 @@
     <div id="my-wishes-error" class="error-msg"></div>
     <button id="btn-retry-my-wishes" class="btn btn-outline btn-block" style="display:none">Prøv igen</button>
     <div id="wish-form" class="wish-form" style="display:none">
+      <p class="wish-hint">Har du allerede en ønskeliste, fx på Ønskeskyen? Så indsæt bare linket, og lad det første felt stå tomt.</p>
       <label for="wish-text">Hvad ønsker du dig?</label>
       <input id="wish-text" type="text" class="input" maxlength="200" placeholder="F.eks. blå uldsokker, str. 42">
-      <label for="wish-url">Link (valgfrit)</label>
+      <label for="wish-url">Link</label>
       <input id="wish-url" type="url" inputmode="url" class="input" maxlength="500" placeholder="https://…">
       <button id="btn-add-wish" class="btn btn-gold btn-block">Tilføj ønske</button>
     </div>
@@ -185,8 +186,8 @@
     </div>
   </div>
 
-  <script src="js/wishes.js?v=1"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/wishes.js?v=2"></script>
+  <script src="js/app.js?v=7"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>

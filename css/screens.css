@@ -541,6 +541,12 @@
   margin-top: 12px;
 }
 
+.wish-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .wish-form label {
   color: var(--text-muted);
   font-size: 0.9rem;

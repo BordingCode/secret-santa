@@ -390,24 +390,26 @@
       li.className = 'wish-item';
       const body = document.createElement('div');
       body.className = 'wish-body';
-      const text = document.createElement('span');
-      text.className = 'wish-text';
-      text.textContent = item.text;
-      body.appendChild(text);
+      if (item.text) {
+        const text = document.createElement('span');
+        text.className = 'wish-text';
+        text.textContent = item.text;
+        body.appendChild(text);
+      }
       if (item.url) {
         const a = document.createElement('a');
         a.className = 'wish-link';
         a.href = item.url;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        a.textContent = 'Åbn link';
+        a.textContent = item.text ? 'Åbn link' : `Åbn link på ${Wishes.siteName(item.url)}`;
         body.appendChild(a);
       }
       li.appendChild(body);
       if (onRemove) {
         const del = document.createElement('button');
         del.className = 'btn-remove';
-        del.setAttribute('aria-label', `Fjern ${item.text}`);
+        del.setAttribute('aria-label', `Fjern ${item.text || Wishes.siteName(item.url)}`);
         del.innerHTML = '&times;';
         del.addEventListener('click', () => onRemove(i));
         li.appendChild(del);
@@ -488,18 +490,21 @@
     }
 
     async function addWish() {
-      const text = textInput.value.trim();
-      if (!text) return;
+      const typed = Wishes.splitWish(textInput.value, urlInput.value);
+      if (!typed.text && !typed.url) {
+        showError(error, 'Skriv et ønske, eller indsæt et link.');
+        return;
+      }
       if (items.length >= Wishes.MAX_ITEMS) {
         showError(error, `Du kan højst have ${Wishes.MAX_ITEMS} ønsker på listen.`);
         return;
       }
-      const url = Wishes.cleanUrl(urlInput.value);
+      const url = Wishes.cleanUrl(typed.url);
       if (url === null) {
         showError(error, 'Linket ser ikke rigtigt ud. Ret det, eller lad feltet stå tomt.');
         return;
       }
-      if (await store([...items, { text, url }])) {
+      if (await store([...items, { text: typed.text, url }])) {
         textInput.value = '';
         urlInput.value = '';
         textInput.focus();
