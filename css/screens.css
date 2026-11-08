@@ -458,6 +458,10 @@
 }
 
 /* ── Wishlists ── */
+.btn-my-wishes {
+  margin-top: -10px;   /* reads as a pair with the reveal button above it */
+}
+
 .reveal-wishes {
   width: 100%;
   display: flex;
