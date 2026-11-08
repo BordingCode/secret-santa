@@ -1,4 +1,4 @@
-const CACHE = 'secret-santa-v8';
+const CACHE = 'secret-santa-v9';
 const ASSETS = [
   './',
   'index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   'css/layout.css',
   'css/screens.css',
   'js/app.js',
+  'js/wishes.js',
   'manifest.json',
   'icons/favicon.svg'
 ];
@@ -28,6 +29,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  // Saving wishes goes to another site by POST: rebuilding it below would drop its contents.
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   url.search = '';
   const cleanReq = new Request(url.href, { headers: e.request.headers });
 

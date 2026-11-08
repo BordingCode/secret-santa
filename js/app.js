@@ -10,6 +10,7 @@
 
   let participants = LS.get('participants') || [];
   let exclusions = LS.get('exclusions') || [];
+  let groupLink = null;   // the encoded draw from the link; wishlists are filed under it
 
   // ── Screen Navigation ──
   function goScreen(name) {
@@ -26,6 +27,7 @@
       const encoded = hash.slice(4);
       try {
         const data = decode(encoded);
+        groupLink = encoded;
         showParticipants(data);
       } catch {
         goScreen('home');
@@ -288,7 +290,7 @@
 
     btnShare.onclick = async () => {
       try {
-        await navigator.share({ title: groupName, text: 'Åbn linket for at se din Secret Santa!', url });
+        await navigator.share({ title: groupName, text: 'Åbn linket for at se, hvem du har trukket, og skriv din egen ønskeliste!', url });
       } catch {}
     };
 
@@ -352,6 +354,8 @@
     giftBox.classList.remove('opened', 'shaking');
     btnReveal.style.display = '';
     nameEl.textContent = recipient;
+    document.getElementById('reveal-wishes').style.display = 'none';
+    document.getElementById('btn-my-wishes').onclick = () => showMyWishes(giver);
 
     initSnowfall();
 
@@ -371,7 +375,162 @@
       setTimeout(() => {
         labelEl.classList.add('show');
       }, 1200);
+      setTimeout(() => {
+        document.getElementById('reveal-wishes').style.display = '';
+      }, 1500);
+      loadRecipientWishes(recipient);
     };
+  }
+
+  // ── Wishlists ──
+  function renderWishes(listEl, items, onRemove) {
+    listEl.innerHTML = '';
+    items.forEach((item, i) => {
+      const li = document.createElement('li');
+      li.className = 'wish-item';
+      const body = document.createElement('div');
+      body.className = 'wish-body';
+      const text = document.createElement('span');
+      text.className = 'wish-text';
+      text.textContent = item.text;
+      body.appendChild(text);
+      if (item.url) {
+        const a = document.createElement('a');
+        a.className = 'wish-link';
+        a.href = item.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'Åbn link';
+        body.appendChild(a);
+      }
+      li.appendChild(body);
+      if (onRemove) {
+        const del = document.createElement('button');
+        del.className = 'btn-remove';
+        del.setAttribute('aria-label', `Fjern ${item.text}`);
+        del.innerHTML = '&times;';
+        del.addEventListener('click', () => onRemove(i));
+        li.appendChild(del);
+      }
+      listEl.appendChild(li);
+    });
+  }
+
+  let recipientLoad = 0;   // only the newest request may draw, if someone switches name mid-load
+
+  async function loadRecipientWishes(recipient) {
+    const load = ++recipientLoad;
+    const title = document.getElementById('reveal-wishes-title');
+    const list = document.getElementById('reveal-wishes-list');
+    const status = document.getElementById('reveal-wishes-status');
+    const retry = document.getElementById('btn-retry-wishes');
+    title.textContent = `${recipient} ønsker sig`;
+    list.innerHTML = '';
+    status.textContent = 'Henter ønsker…';
+    retry.style.display = 'none';
+    retry.onclick = () => loadRecipientWishes(recipient);
+    try {
+      const items = await Wishes.load(groupLink, recipient);
+      if (load !== recipientLoad) return;
+      renderWishes(list, items);
+      status.textContent = items.length ? '' : `${recipient} har ikke skrevet nogen ønsker endnu. Kig forbi igen senere.`;
+    } catch (err) {
+      if (load !== recipientLoad) return;
+      console.error(err);
+      status.textContent = 'Kunne ikke hente ønskelisten. Tjek din internetforbindelse.';
+      retry.style.display = '';
+    }
+  }
+
+  function showMyWishes(name) {
+    goScreen('wishlist');
+    const list = document.getElementById('my-wishes-list');
+    const status = document.getElementById('my-wishes-status');
+    const error = document.getElementById('my-wishes-error');
+    const retry = document.getElementById('btn-retry-my-wishes');
+    const form = document.getElementById('wish-form');
+    const textInput = document.getElementById('wish-text');
+    const urlInput = document.getElementById('wish-url');
+    const btnAdd = document.getElementById('btn-add-wish');
+    let items = [];
+    let saving = false;
+
+    function draw() {
+      renderWishes(list, items, removeWish);
+    }
+
+    // The list on screen only changes once the server has really stored the new one.
+    async function store(next) {
+      if (saving) return false;
+      saving = true;
+      btnAdd.disabled = true;
+      hideError(error);
+      status.textContent = 'Gemmer…';
+      try {
+        await Wishes.save(groupLink, name, next);
+        items = next;
+        draw();
+        status.textContent = 'Gemt ✓';
+        return true;
+      } catch (err) {
+        console.error(err);
+        status.textContent = '';
+        showError(error, 'Kunne ikke gemme. Tjek din internetforbindelse, og prøv igen.');
+        return false;
+      } finally {
+        saving = false;
+        btnAdd.disabled = false;
+      }
+    }
+
+    function removeWish(i) {
+      store(items.filter((_, k) => k !== i));
+    }
+
+    async function addWish() {
+      const text = textInput.value.trim();
+      if (!text) return;
+      if (items.length >= Wishes.MAX_ITEMS) {
+        showError(error, `Du kan højst have ${Wishes.MAX_ITEMS} ønsker på listen.`);
+        return;
+      }
+      const url = Wishes.cleanUrl(urlInput.value);
+      if (url === null) {
+        showError(error, 'Linket ser ikke rigtigt ud. Ret det, eller lad feltet stå tomt.');
+        return;
+      }
+      if (await store([...items, { text, url }])) {
+        textInput.value = '';
+        urlInput.value = '';
+        textInput.focus();
+      }
+    }
+
+    btnAdd.onclick = addWish;
+    textInput.onkeydown = urlInput.onkeydown = (e) => { if (e.key === 'Enter') addWish(); };
+
+    // Without the saved list on screen the form stays hidden: saving from a
+    // blank start would wipe wishes that are already there.
+    async function loadMine() {
+      list.innerHTML = '';
+      form.style.display = 'none';
+      retry.style.display = 'none';
+      hideError(error);
+      status.textContent = 'Henter din ønskeliste…';
+      try {
+        items = await Wishes.load(groupLink, name);
+        draw();
+        status.textContent = '';
+        form.style.display = '';
+      } catch (err) {
+        console.error(err);
+        status.textContent = '';
+        showError(error, 'Kunne ikke hente din ønskeliste. Tjek din internetforbindelse.');
+        retry.style.display = '';
+      }
+    }
+    retry.onclick = loadMine;
+    loadMine();
   }
 
   // ── Snowfall ──

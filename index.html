@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   <link rel="stylesheet" href="css/theme.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=3">
-  <link rel="stylesheet" href="css/screens.css?v=5">
+  <link rel="stylesheet" href="css/screens.css?v=6">
 </head>
 <body>
 
@@ -102,7 +102,7 @@
       <h1 id="share-group-name">Secret Santa</h1>
     </div>
 
-    <p class="share-info">Lodtrækningen er klar! Del linket nedenfor med alle deltagere. Hver person trykker på sit eget navn for at se, hvem de skal finde gave til.</p>
+    <p class="share-info">Lodtrækningen er klar! Del linket nedenfor med alle deltagere. Hver person trykker på sit eget navn for at se, hvem de skal finde gave til, og kan skrive sin egen ønskeliste.</p>
 
     <div class="share-link-box" id="share-link-text"></div>
 
@@ -123,7 +123,7 @@
       <div class="home-icon">🎁</div>
     </div>
     <h1 class="participants-title" id="group-title">Secret Santa</h1>
-    <p class="participants-subtitle">Tryk på dit navn for at se, hvem du er Secret Santa for</p>
+    <p class="participants-subtitle">Tryk på dit navn for at se, hvem du er Secret Santa for, og for at skrive din egen ønskeliste</p>
     <div id="name-grid" class="name-grid"></div>
   </div>
 
@@ -141,6 +141,35 @@
       <h1 class="reveal-name" id="reveal-recipient"></h1>
       <p class="reveal-label" id="reveal-label">God julegavejagt! 🎄</p>
       <button id="btn-reveal" class="btn btn-gold btn-lg btn-reveal">Tryk for at afsløre</button>
+      <div id="reveal-wishes" class="reveal-wishes" style="display:none">
+        <div class="card">
+          <h2 id="reveal-wishes-title" class="wish-title"></h2>
+          <ul id="reveal-wishes-list" class="wish-list"></ul>
+          <p id="reveal-wishes-status" class="wish-status"></p>
+          <button id="btn-retry-wishes" class="btn btn-outline btn-block" style="display:none">Prøv igen</button>
+        </div>
+        <button id="btn-my-wishes" class="btn btn-gold btn-block">Skriv min egen ønskeliste</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Wishlist Screen -->
+  <div id="screen-wishlist" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goScreen('reveal')">&larr;</button>
+      <h1>Min ønskeliste</h1>
+    </div>
+    <p class="wish-intro">Din Secret Santa kan se det, du skriver her. Du kan ændre det når som helst.</p>
+    <ul id="my-wishes-list" class="wish-list"></ul>
+    <p id="my-wishes-status" class="wish-status"></p>
+    <div id="my-wishes-error" class="error-msg"></div>
+    <button id="btn-retry-my-wishes" class="btn btn-outline btn-block" style="display:none">Prøv igen</button>
+    <div id="wish-form" class="wish-form" style="display:none">
+      <label for="wish-text">Hvad ønsker du dig?</label>
+      <input id="wish-text" type="text" class="input" maxlength="200" placeholder="F.eks. blå uldsokker, str. 42">
+      <label for="wish-url">Link (valgfrit)</label>
+      <input id="wish-url" type="url" inputmode="url" class="input" maxlength="500" placeholder="https://…">
+      <button id="btn-add-wish" class="btn btn-gold btn-block">Tilføj ønske</button>
     </div>
   </div>
 
@@ -156,7 +185,8 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=5"></script>
+  <script src="js/wishes.js?v=1"></script>
+  <script src="js/app.js?v=6"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>

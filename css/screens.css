@@ -283,10 +283,7 @@
 /* ── Reveal Screen ── */
 #screen-reveal {
   align-items: center;
-  justify-content: center;
   text-align: center;
-  position: relative;
-  overflow: hidden;
 }
 
 #snow-canvas {
@@ -306,6 +303,9 @@
 .reveal-content {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  margin: auto 0;   /* centred, but a long wishlist can still scroll from the top */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -455,6 +455,105 @@
 
 .btn-reveal {
   margin-top: 12px;
+}
+
+/* ── Wishlists ── */
+.reveal-wishes {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.wish-title {
+  font-size: 1.05rem;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.wish-intro {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.wish-list {
+  list-style: none;
+}
+
+.wish-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.wish-item:last-child {
+  border-bottom: none;
+}
+
+.wish-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wish-text {
+  display: block;
+  line-height: 1.4;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.wish-link {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 0;
+  color: var(--gold-light);
+  font-size: 0.9rem;
+}
+
+.wish-status {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.wish-status:empty {
+  display: none;
+}
+
+#my-wishes-status {
+  margin: 8px 0 12px;
+}
+
+.wish-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.wish-form label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.wish-form .input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.wish-form .btn {
+  margin-top: 8px;
+}
+
+.wish-form .btn:disabled {
+  opacity: 0.6;
 }
 
 /* ── Confirm Modal ── */
