@@ -121,3 +121,21 @@ test('a link pasted into the wish field is treated as the link', () => {
   assert.deepEqual(Wishes.splitWish(url, 'https://andet.dk'), { text: url, url: 'https://andet.dk' }, 'a typed link is left alone');
 });
 
+
+test('children list round-trips, stays scrambled, and never clashes with a person', async () => {
+  const db = useServer();
+  assert.deepEqual(await Wishes.loadKids(LINK), []);
+  await Wishes.saveKids(LINK, ['Ida', 'Malte']);
+  await Wishes.save(LINK, 'Ida', [{ text: 'Lego', url: '' }]);
+  assert.deepEqual(await Wishes.loadKids(LINK), ['Ida', 'Malte']);
+  assert.deepEqual(await Wishes.load(LINK, 'Ida'), [{ text: 'Lego', url: '' }]);
+  assert.deepEqual(await Wishes.loadKids('another-group'), []);
+  for (const [, row] of db.rows) for (const secret of ['Ida', 'Malte', 'Lego']) assert.ok(!row.blob.includes(secret));
+});
+
+test('children names are cleaned: trimmed, no blanks or duplicates, capped', () => {
+  assert.deepEqual(Wishes.cleanKids(['  Ida ', '', 'ida', 7, null, 'Bo']), ['Ida', 'Bo']);
+  assert.deepEqual(Wishes.cleanKids('nope'), []);
+  assert.equal(Wishes.cleanKids(Array.from({ length: 50 }, (_, i) => 'b' + i)).length, Wishes.MAX_KIDS);
+  assert.equal(Wishes.cleanKids(['x'.repeat(100)])[0].length, Wishes.MAX_NAME);
+});

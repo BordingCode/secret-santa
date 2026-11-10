@@ -637,3 +637,52 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Children's wishlists (front page) ── */
+.kids-section {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--surface-border);
+  text-align: center;
+}
+
+.kids-title {
+  font-size: 1.1rem;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+
+.kids-intro {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.kids-add {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.kid-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.kid-form .input {
+  flex: 1;
+  min-width: 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.kids-section .error-msg {
+  margin-top: 8px;
+}
+
+.btn-remove-kid {
+  margin-top: 32px;
+}

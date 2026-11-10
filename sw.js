@@ -1,4 +1,4 @@
-const CACHE = 'secret-santa-v12';
+const CACHE = 'secret-santa-v13';
 const ASSETS = [
   './',
   'index.html',

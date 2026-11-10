@@ -320,6 +320,119 @@
       });
       grid.appendChild(btn);
     });
+
+    showKids(data);
+  }
+
+  // ── Children (front page): not in the draw, but everyone can see and fill their wishlist ──
+  let kidsLoad = 0;
+
+  function showKids(data) {
+    const load = ++kidsLoad;
+    const people = data.a.map(([giver]) => giver);
+    const grid = document.getElementById('kids-grid');
+    const status = document.getElementById('kids-status');
+    const retry = document.getElementById('btn-retry-kids');
+    const btnShow = document.getElementById('btn-show-add-kid');
+    const form = document.getElementById('kid-form');
+    const input = document.getElementById('kid-name');
+    const btnAdd = document.getElementById('btn-add-kid');
+    const error = document.getElementById('kids-error');
+    let kids = [];
+
+    function draw() {
+      grid.innerHTML = '';
+      kids.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'name-btn';
+        btn.textContent = name;
+        btn.addEventListener('click', () => showMyWishes(name, { kid: true, people }));
+        grid.appendChild(btn);
+      });
+      status.textContent = kids.length ? '' : 'Ingen børn tilføjet endnu.';
+    }
+
+    async function addKid() {
+      const name = input.value.trim().slice(0, Wishes.MAX_NAME);
+      if (!name) return;
+      const lower = name.toLowerCase();
+      if (people.some(p => p.toLowerCase() === lower)) {
+        showError(error, `${name} er allerede med i lodtrækningen.`);
+        return;
+      }
+      btnAdd.disabled = true;
+      hideError(error);
+      try {
+        // Fetch the newest list first, so a child someone else just added isn't lost.
+        const latest = await Wishes.loadKids(groupLink);
+        if (latest.some(k => k.toLowerCase() === lower)) {
+          kids = latest;
+        } else if (latest.length >= Wishes.MAX_KIDS) {
+          showError(error, `Der kan højst være ${Wishes.MAX_KIDS} børn på listen.`);
+          return;
+        } else {
+          kids = [...latest, name];
+          await Wishes.saveKids(groupLink, kids);
+        }
+        draw();
+        input.value = '';
+        form.style.display = 'none';
+        btnShow.style.display = '';
+      } catch (err) {
+        console.error(err);
+        showError(error, 'Kunne ikke gemme. Tjek din internetforbindelse, og prøv igen.');
+      } finally {
+        btnAdd.disabled = false;
+      }
+    }
+
+    btnShow.onclick = () => {
+      btnShow.style.display = 'none';
+      form.style.display = '';
+      input.focus();
+    };
+    btnAdd.onclick = addKid;
+    input.onkeydown = (e) => { if (e.key === 'Enter') addKid(); };
+
+    // Adding stays hidden until the saved list is known, so it can't be overwritten.
+    async function loadList() {
+      grid.innerHTML = '';
+      btnShow.style.display = 'none';
+      form.style.display = 'none';
+      retry.style.display = 'none';
+      hideError(error);
+      status.textContent = 'Henter børnenes ønskelister…';
+      try {
+        const list = await Wishes.loadKids(groupLink);
+        if (load !== kidsLoad) return;
+        kids = list;
+        draw();
+        btnShow.style.display = '';
+      } catch (err) {
+        if (load !== kidsLoad) return;
+        console.error(err);
+        status.textContent = 'Kunne ikke hente børnenes ønskelister. Tjek din internetforbindelse.';
+        retry.style.display = '';
+      }
+    }
+    retry.onclick = loadList;
+    loadList();
+  }
+
+  async function removeKid(name) {
+    if (!confirm(`Fjern ${name} fra børnenes ønskelister?`)) return;
+    try {
+      const latest = await Wishes.loadKids(groupLink);
+      await Wishes.saveKids(groupLink, latest.filter(k => k !== name));
+      // Empty the list too, so nothing is left behind if the name is added again.
+      await Wishes.save(groupLink, name, []);
+    } catch (err) {
+      console.error(err);
+      showError(document.getElementById('my-wishes-error'), 'Kunne ikke fjerne. Tjek din internetforbindelse, og prøv igen.');
+      return;
+    }
+    goScreen('participants');
+    showKids(decode(groupLink));
   }
 
   // ── Confirm Modal ──
@@ -444,8 +557,22 @@
     }
   }
 
-  function showMyWishes(name) {
+  function showMyWishes(name, opts = {}) {
+    const kid = !!opts.kid;
     goScreen('wishlist');
+    document.getElementById('btn-back-wishlist').onclick = () => goScreen(kid ? 'participants' : 'reveal');
+    document.getElementById('wishlist-title').textContent = kid ? `${name}s ønskeliste` : 'Min ønskeliste';
+    document.getElementById('wishlist-intro').textContent = kid
+      ? `${name} er ikke med i lodtrækningen. Alle med linket kan se listen og skrive på den.`
+      : 'Din Secret Santa kan se det, du skriver her. Du kan ændre det når som helst.';
+    document.getElementById('wish-text-label').textContent = kid ? `Hvad ønsker ${name} sig?` : 'Hvad ønsker du dig?';
+    document.getElementById('wish-hint').textContent = kid
+      ? 'Har barnet allerede en ønskeliste, fx på Ønskeskyen? Så indsæt bare linket, og lad det første felt stå tomt.'
+      : 'Har du allerede en ønskeliste, fx på Ønskeskyen? Så indsæt bare linket, og lad det første felt stå tomt.';
+    const btnRemoveKid = document.getElementById('btn-remove-kid');
+    btnRemoveKid.style.display = kid ? '' : 'none';
+    btnRemoveKid.textContent = `Fjern ${name} fra listen`;
+    btnRemoveKid.onclick = () => removeKid(name);
     const list = document.getElementById('my-wishes-list');
     const status = document.getElementById('my-wishes-status');
     const error = document.getElementById('my-wishes-error');
@@ -496,7 +623,7 @@
         return;
       }
       if (items.length >= Wishes.MAX_ITEMS) {
-        showError(error, `Du kan højst have ${Wishes.MAX_ITEMS} ønsker på listen.`);
+        showError(error, `Der kan højst være ${Wishes.MAX_ITEMS} ønsker på listen.`);
         return;
       }
       const url = Wishes.cleanUrl(typed.url);

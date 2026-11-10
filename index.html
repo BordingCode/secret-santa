@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   <link rel="stylesheet" href="css/theme.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=3">
-  <link rel="stylesheet" href="css/screens.css?v=8">
+  <link rel="stylesheet" href="css/screens.css?v=9">
 </head>
 <body>
 
@@ -125,6 +125,20 @@
     <h1 class="participants-title" id="group-title">Secret Santa</h1>
     <p class="participants-subtitle">Tryk på dit navn for at se, hvem du er Secret Santa for, og for at skrive din egen ønskeliste</p>
     <div id="name-grid" class="name-grid"></div>
+
+    <div class="kids-section">
+      <h2 class="kids-title">Børnenes ønskelister 🧸</h2>
+      <p class="kids-intro">Børn er ikke med i lodtrækningen, men de kan få en ønskeliste her. Alle med linket kan se og skrive på den.</p>
+      <div id="kids-grid" class="name-grid"></div>
+      <p id="kids-status" class="wish-status"></p>
+      <button id="btn-retry-kids" class="btn btn-outline btn-block" style="display:none">Prøv igen</button>
+      <button id="btn-show-add-kid" class="btn-add kids-add" style="display:none">+ Tilføj barn</button>
+      <div id="kid-form" class="kid-form" style="display:none">
+        <input id="kid-name" type="text" class="input" maxlength="40" placeholder="Barnets navn">
+        <button id="btn-add-kid" class="btn btn-gold">Tilføj</button>
+      </div>
+      <div id="kids-error" class="error-msg"></div>
+    </div>
   </div>
 
   <!-- Reveal Screen -->
@@ -156,22 +170,23 @@
   <!-- My Wishlist Screen -->
   <div id="screen-wishlist" class="screen">
     <div class="screen-header">
-      <button class="btn-back" onclick="goScreen('reveal')">&larr;</button>
-      <h1>Min ønskeliste</h1>
+      <button id="btn-back-wishlist" class="btn-back">&larr;</button>
+      <h1 id="wishlist-title">Min ønskeliste</h1>
     </div>
-    <p class="wish-intro">Din Secret Santa kan se det, du skriver her. Du kan ændre det når som helst.</p>
+    <p id="wishlist-intro" class="wish-intro">Din Secret Santa kan se det, du skriver her. Du kan ændre det når som helst.</p>
     <ul id="my-wishes-list" class="wish-list"></ul>
     <p id="my-wishes-status" class="wish-status"></p>
     <div id="my-wishes-error" class="error-msg"></div>
     <button id="btn-retry-my-wishes" class="btn btn-outline btn-block" style="display:none">Prøv igen</button>
     <div id="wish-form" class="wish-form" style="display:none">
-      <p class="wish-hint">Har du allerede en ønskeliste, fx på Ønskeskyen? Så indsæt bare linket, og lad det første felt stå tomt.</p>
-      <label for="wish-text">Hvad ønsker du dig?</label>
+      <p id="wish-hint" class="wish-hint">Har du allerede en ønskeliste, fx på Ønskeskyen? Så indsæt bare linket, og lad det første felt stå tomt.</p>
+      <label id="wish-text-label" for="wish-text">Hvad ønsker du dig?</label>
       <input id="wish-text" type="text" class="input" maxlength="200" placeholder="F.eks. blå uldsokker, str. 42">
       <label for="wish-url">Link</label>
       <input id="wish-url" type="url" inputmode="url" class="input" maxlength="500" placeholder="https://…">
       <button id="btn-add-wish" class="btn btn-gold btn-block">Tilføj ønske</button>
     </div>
+    <button id="btn-remove-kid" class="btn btn-danger btn-block btn-remove-kid" style="display:none"></button>
   </div>
 
   <!-- Confirm Modal -->
@@ -186,8 +201,8 @@
     </div>
   </div>
 
-  <script src="js/wishes.js?v=2"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/wishes.js?v=3"></script>
+  <script src="js/app.js?v=9"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>

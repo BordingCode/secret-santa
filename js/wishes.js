@@ -93,5 +93,29 @@
     await call('/put', { id: await idFor(link, name), blob: await seal(cleanItems(items), link, name) });
   }
 
-  root.Wishes = { load, save, cleanUrl, cleanItems, splitWish, siteName, idFor, seal, open, MAX_ITEMS, MAX_TEXT, MAX_URL };
+  // The group's children (not in the draw, but with a wishlist) are kept as their own
+  // encrypted list. A typed name can't contain \0, so this can't clash with a person.
+  const KIDS = '\0children', MAX_KIDS = 30, MAX_NAME = 40;
+
+  function cleanKids(value) {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set();
+    return value
+      .filter(n => typeof n === 'string')
+      .map(n => n.trim().slice(0, MAX_NAME))
+      .filter(n => n && !n.includes('\0') && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()))
+      .slice(0, MAX_KIDS);
+  }
+
+  /** The children's names; [] if none were added. Throws if it can't be fetched. */
+  async function loadKids(link) {
+    const { blob } = await call('/get', { id: await idFor(link, KIDS) });
+    return blob ? cleanKids(await open(blob, link, KIDS)) : [];
+  }
+
+  async function saveKids(link, names) {
+    await call('/put', { id: await idFor(link, KIDS), blob: await seal(cleanKids(names), link, KIDS) });
+  }
+
+  root.Wishes = { load, save, loadKids, saveKids, cleanKids, MAX_KIDS, MAX_NAME, cleanUrl, cleanItems, splitWish, siteName, idFor, seal, open, MAX_ITEMS, MAX_TEXT, MAX_URL };
 })(globalThis);
