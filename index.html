@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
   <link rel="stylesheet" href="css/theme.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=3">
-  <link rel="stylesheet" href="css/screens.css?v=9">
+  <link rel="stylesheet" href="css/screens.css?v=10">
 </head>
 <body>
 
@@ -47,6 +47,13 @@
       <h2>Deltagere</h2>
       <div id="participant-list" class="participant-list"></div>
       <button id="btn-add-participant" class="btn-add">+ Tilføj deltager</button>
+    </div>
+
+    <div class="participants-section kids-create">
+      <h2>Børn <span class="kids-create-note">(ikke med i lodtrækningen)</span></h2>
+      <p class="kids-create-intro">Børn får en ønskeliste, som alle med linket kan se og skrive på. Kan også tilføjes senere.</p>
+      <div id="kid-input-list" class="participant-list"></div>
+      <button id="btn-add-kid-create" class="btn-add">+ Tilføj barn</button>
     </div>
 
     <div id="create-error" class="error-msg"></div>
@@ -201,8 +208,8 @@
     </div>
   </div>
 
-  <script src="js/wishes.js?v=3"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/wishes.js?v=4"></script>
+  <script src="js/app.js?v=10"></script>
   <!-- hub-stats visit counter -->
   <script>(function(){try{var A="secret-santa",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
 </body>

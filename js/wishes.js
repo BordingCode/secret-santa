@@ -107,10 +107,10 @@
       .slice(0, MAX_KIDS);
   }
 
-  /** The children's names; [] if none were added. Throws if it can't be fetched. */
+  /** The children's names, or null if the list was never saved. Throws if it can't be fetched. */
   async function loadKids(link) {
     const { blob } = await call('/get', { id: await idFor(link, KIDS) });
-    return blob ? cleanKids(await open(blob, link, KIDS)) : [];
+    return blob ? cleanKids(await open(blob, link, KIDS)) : null;
   }
 
   async function saveKids(link, names) {

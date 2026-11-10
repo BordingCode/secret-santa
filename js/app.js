@@ -10,6 +10,7 @@
 
   let participants = LS.get('participants') || [];
   let exclusions = LS.get('exclusions') || [];
+  let kids = LS.get('kids') || [];   // children: not in the draw, but given a wishlist
   let groupLink = null;   // the encoded draw from the link; wishlists are filed under it
 
   // ── Screen Navigation ──
@@ -121,7 +122,17 @@
       participants = ['', '', ''];
     }
 
+    const kidList = document.getElementById('kid-input-list');
+    kids = LS.get('kids') || [];
     renderParticipantInputs();
+    renderKidInputs();
+
+    document.getElementById('btn-add-kid-create').onclick = () => {
+      readKidInputs();
+      kids.push('');
+      renderKidInputs();
+      kidList.querySelector('.participant-row:last-child input').focus();
+    };
 
     groupInput.oninput = () => {
       LS.set('groupName', groupInput.value);
@@ -144,7 +155,25 @@
         showError(error, 'Alle navne skal være forskellige.');
         return;
       }
+      readKidInputs();
+      const kidNames = kids.map(n => n.trim()).filter(Boolean);
+      const lowerPeople = new Set(names.map(n => n.trim().toLowerCase()));
+      const clash = kidNames.find(n => lowerPeople.has(n.toLowerCase()));
+      if (clash) {
+        showError(error, `${clash} står både som deltager og som barn. Brug kun ét af stederne.`);
+        return;
+      }
+      if (new Set(kidNames.map(n => n.toLowerCase())).size !== kidNames.length) {
+        showError(error, 'Børnenes navne skal være forskellige.');
+        return;
+      }
+      if (kidNames.length > Wishes.MAX_KIDS) {
+        showError(error, `Der kan højst være ${Wishes.MAX_KIDS} børn.`);
+        return;
+      }
       hideError(error);
+      kids = kidNames;
+      LS.set('kids', kids);
       participants = names.map(n => n.trim());
       LS.set('participants', participants);
       exclusions = exclusions.filter(([a, b]) => participants.includes(a) && participants.includes(b));
@@ -178,6 +207,30 @@
       list.querySelectorAll('.participant-input').forEach(input => {
         input.addEventListener('input', saveParticipants);
       });
+    }
+
+    function renderKidInputs() {
+      kidList.innerHTML = '';
+      kids.forEach((name, i) => {
+        const row = document.createElement('div');
+        row.className = 'participant-row';
+        row.innerHTML = `
+          <input type="text" class="input participant-input" maxlength="${Wishes.MAX_NAME}" placeholder="Barnets navn" value="${escHtml(name)}">
+          <button class="btn-remove" aria-label="Fjern barn">&times;</button>
+        `;
+        row.querySelector('input').addEventListener('input', () => { readKidInputs(); LS.set('kids', kids); });
+        row.querySelector('button').addEventListener('click', () => {
+          readKidInputs();
+          kids.splice(i, 1);
+          LS.set('kids', kids);
+          renderKidInputs();
+        });
+        kidList.appendChild(row);
+      });
+    }
+
+    function readKidInputs() {
+      kids = Array.from(kidList.querySelectorAll('input'), el => el.value);
     }
 
     function readParticipantInputs() {
@@ -231,6 +284,8 @@
       }
       const groupName = LS.get('groupName') || 'Secret Santa';
       const data = { name: groupName, a: result.map(r => [r.giver, r.recipient]) };
+      const kidNames = Wishes.cleanKids(kids);
+      if (kidNames.length) data.k = kidNames;   // the starting list; changes on the link page are saved online
       const encoded = encode(data);
       const shareUrl = location.origin + location.pathname + '#/g/' + encoded;
       LS.set('lastDraw', { url: shareUrl, groupName, ts: Date.now() });
@@ -339,6 +394,8 @@
     const btnAdd = document.getElementById('btn-add-kid');
     const error = document.getElementById('kids-error');
     let kids = [];
+    // Until someone changes the list on this page, it's the children named when the draw was made.
+    const current = async () => (await Wishes.loadKids(groupLink)) ?? Wishes.cleanKids(data.k || []);
 
     function draw() {
       grid.innerHTML = '';
@@ -364,7 +421,7 @@
       hideError(error);
       try {
         // Fetch the newest list first, so a child someone else just added isn't lost.
-        const latest = await Wishes.loadKids(groupLink);
+        const latest = await current();
         if (latest.some(k => k.toLowerCase() === lower)) {
           kids = latest;
         } else if (latest.length >= Wishes.MAX_KIDS) {
@@ -403,7 +460,7 @@
       hideError(error);
       status.textContent = 'Henter børnenes ønskelister…';
       try {
-        const list = await Wishes.loadKids(groupLink);
+        const list = await current();
         if (load !== kidsLoad) return;
         kids = list;
         draw();
@@ -422,7 +479,7 @@
   async function removeKid(name) {
     if (!confirm(`Fjern ${name} fra børnenes ønskelister?`)) return;
     try {
-      const latest = await Wishes.loadKids(groupLink);
+      const latest = (await Wishes.loadKids(groupLink)) ?? Wishes.cleanKids(decode(groupLink).k || []);
       await Wishes.saveKids(groupLink, latest.filter(k => k !== name));
       // Empty the list too, so nothing is left behind if the name is added again.
       await Wishes.save(groupLink, name, []);

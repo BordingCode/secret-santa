@@ -124,12 +124,14 @@ test('a link pasted into the wish field is treated as the link', () => {
 
 test('children list round-trips, stays scrambled, and never clashes with a person', async () => {
   const db = useServer();
-  assert.deepEqual(await Wishes.loadKids(LINK), []);
+  assert.equal(await Wishes.loadKids(LINK), null);
   await Wishes.saveKids(LINK, ['Ida', 'Malte']);
   await Wishes.save(LINK, 'Ida', [{ text: 'Lego', url: '' }]);
   assert.deepEqual(await Wishes.loadKids(LINK), ['Ida', 'Malte']);
   assert.deepEqual(await Wishes.load(LINK, 'Ida'), [{ text: 'Lego', url: '' }]);
-  assert.deepEqual(await Wishes.loadKids('another-group'), []);
+  assert.equal(await Wishes.loadKids('another-group'), null);
+  await Wishes.saveKids(LINK, []);
+  assert.deepEqual(await Wishes.loadKids(LINK), []);   // emptied on purpose is not the same as never saved
   for (const [, row] of db.rows) for (const secret of ['Ida', 'Malte', 'Lego']) assert.ok(!row.blob.includes(secret));
 });
 
