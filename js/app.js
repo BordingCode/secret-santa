@@ -553,7 +553,7 @@
   }
 
   // ── Wishlists ──
-  function renderWishes(listEl, items, onRemove) {
+  function renderWishes(listEl, items, onRemove, onEdit, editingIndex = -1) {
     listEl.innerHTML = '';
     items.forEach((item, i) => {
       const li = document.createElement('li');
@@ -576,6 +576,15 @@
         body.appendChild(a);
       }
       li.appendChild(body);
+      if (i === editingIndex) li.classList.add('editing');
+      if (onEdit) {
+        const edit = document.createElement('button');
+        edit.className = 'btn-edit';
+        edit.setAttribute('aria-label', `Ret ${item.text || Wishes.siteName(item.url)}`);
+        edit.textContent = '✎';
+        edit.addEventListener('click', () => onEdit(i));
+        li.appendChild(edit);
+      }
       if (onRemove) {
         const del = document.createElement('button');
         del.className = 'btn-remove';
@@ -638,11 +647,37 @@
     const textInput = document.getElementById('wish-text');
     const urlInput = document.getElementById('wish-url');
     const btnAdd = document.getElementById('btn-add-wish');
+    const btnCancel = document.getElementById('btn-cancel-edit');
     let items = [];
     let saving = false;
+    let editing = -1;   // index of the wish being changed, or -1 when adding a new one
 
     function draw() {
-      renderWishes(list, items, removeWish);
+      renderWishes(list, items, removeWish, startEdit, editing);
+    }
+
+    function setEditing(i) {
+      editing = i;
+      btnAdd.textContent = i >= 0 ? 'Gem ændring' : 'Tilføj ønske';
+      btnCancel.style.display = i >= 0 ? '' : 'none';
+      draw();
+    }
+
+    function startEdit(i) {
+      const item = items[i];
+      hideError(error);
+      textInput.value = item.text || '';
+      urlInput.value = item.url || '';
+      setEditing(i);
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      textInput.focus();
+    }
+
+    function cancelEdit() {
+      textInput.value = '';
+      urlInput.value = '';
+      hideError(error);
+      setEditing(-1);
     }
 
     // The list on screen only changes once the server has really stored the new one.
@@ -669,8 +704,12 @@
       }
     }
 
-    function removeWish(i) {
-      store(items.filter((_, k) => k !== i));
+    async function removeWish(i) {
+      if (await store(items.filter((_, k) => k !== i)) && editing >= 0) {
+        // The list shifted: drop the edit if its wish is gone, else follow it.
+        if (editing === i) cancelEdit();
+        else setEditing(editing > i ? editing - 1 : editing);
+      }
     }
 
     async function addWish() {
@@ -679,7 +718,7 @@
         showError(error, 'Skriv et ønske, eller indsæt et link.');
         return;
       }
-      if (items.length >= Wishes.MAX_ITEMS) {
+      if (editing < 0 && items.length >= Wishes.MAX_ITEMS) {
         showError(error, `Der kan højst være ${Wishes.MAX_ITEMS} ønsker på listen.`);
         return;
       }
@@ -688,19 +727,26 @@
         showError(error, 'Linket ser ikke rigtigt ud. Ret det, eller lad feltet stå tomt.');
         return;
       }
-      if (await store([...items, { text: typed.text, url }])) {
+      const wish = { text: typed.text, url };
+      const next = editing >= 0
+        ? items.map((it, k) => (k === editing ? wish : it))
+        : [...items, wish];
+      if (await store(next)) {
         textInput.value = '';
         urlInput.value = '';
-        textInput.focus();
+        if (editing >= 0) setEditing(-1);
+        else textInput.focus();
       }
     }
 
     btnAdd.onclick = addWish;
+    btnCancel.onclick = cancelEdit;
     textInput.onkeydown = urlInput.onkeydown = (e) => { if (e.key === 'Enter') addWish(); };
 
     // Without the saved list on screen the form stays hidden: saving from a
     // blank start would wipe wishes that are already there.
     async function loadMine() {
+      cancelEdit();
       list.innerHTML = '';
       form.style.display = 'none';
       retry.style.display = 'none';
