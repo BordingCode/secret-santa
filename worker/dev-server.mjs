@@ -7,11 +7,27 @@ import { handle } from './api.js';
 
 export function memoryDb() {
   const rows = new Map();
+  const res = new Map();
   return {
     rows,
     get: async (id) => rows.get(id)?.blob ?? null,
     put: async (id, blob, now) => { rows.set(id, { blob, updated: now }); },
-    purge: async (before) => { for (const [id, r] of rows) if (r.updated < before) rows.delete(id); },
+    purge: async (before) => {
+      for (const [id, r] of rows) if (r.updated < before) rows.delete(id);
+      for (const [k, r] of res) if (r.updated < before) res.delete(k);
+    },
+    res,
+    resList: async (id) => [...res.values()].filter(r => r.list === id).map(({ wish, holder }) => ({ wish, holder })),
+    resTake: async (id, wish, holder, now) => {
+      const k = id + '/' + wish;
+      if (res.has(k)) return res.get(k).holder === holder;
+      res.set(k, { list: id, wish, holder, updated: now });
+      return true;
+    },
+    resDrop: async (id, wish, holder) => {
+      const k = id + '/' + wish;
+      if (res.get(k)?.holder === holder) res.delete(k);
+    },
   };
 }
 

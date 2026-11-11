@@ -545,6 +545,69 @@
   font-size: 0.9rem;
 }
 
+.wish-res {
+  margin-top: 6px;
+}
+
+.btn-res {
+  background: none;
+  border: 1px solid rgba(212, 168, 67, 0.5);
+  border-radius: 999px;
+  color: var(--gold-light);
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.btn-res.mine {
+  background: rgba(212, 168, 67, 0.18);
+  border-color: var(--gold-light);
+}
+
+.res-tag {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 6px 0;
+}
+
+.wish-item.reserved .wish-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.res-note:not(:empty) {
+  color: var(--gold-light);
+  margin-top: 8px;
+}
+
+.res-hint:not(:empty) {
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.sync-note, .copy-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.btn-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--gold-light);
+  text-decoration: underline;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .wish-status {
   color: var(--text-muted);
   font-size: 0.95rem;

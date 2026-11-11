@@ -141,3 +141,43 @@ test('children names are cleaned: trimmed, no blanks or duplicates, capped', () 
   assert.equal(Wishes.cleanKids(Array.from({ length: 50 }, (_, i) => 'b' + i)).length, Wishes.MAX_KIDS);
   assert.equal(Wishes.cleanKids(['x'.repeat(100)])[0].length, Wishes.MAX_NAME);
 });
+
+test('reservations: first come first served, only the reserver sees it as theirs or can undo it', async () => {
+  const db = useServer();
+  const BO = 'bo-phone-secret', CARL = 'carl-phone-secret';
+  assert.deepEqual(await Wishes.reservations(LINK, 'Anna', BO), []);
+  assert.equal(await Wishes.reserve(LINK, 'Anna', 'w1', BO), true);
+  assert.equal(await Wishes.reserve(LINK, 'Anna', 'w1', BO), true, 'asking again is fine');
+  assert.equal(await Wishes.reserve(LINK, 'Anna', 'w1', CARL), false, 'someone else got there first');
+  assert.deepEqual(await Wishes.reservations(LINK, 'Anna', BO), [{ w: 'w1', mine: true }]);
+  assert.deepEqual(await Wishes.reservations(LINK, 'Anna', CARL), [{ w: 'w1', mine: false }]);
+  await Wishes.unreserve(LINK, 'Anna', 'w1', CARL);   // not Carl's to undo
+  assert.equal((await Wishes.reservations(LINK, 'Anna', BO)).length, 1);
+  await Wishes.unreserve(LINK, 'Anna', 'w1', BO);
+  assert.deepEqual(await Wishes.reservations(LINK, 'Anna', CARL), []);
+  // Other people's lists and other groups are kept apart.
+  await Wishes.reserve(LINK, 'Anna', 'w1', BO);
+  assert.deepEqual(await Wishes.reservations(LINK, 'Bo', BO), []);
+  assert.deepEqual(await Wishes.reservations('othergroup', 'Anna', BO), []);
+  // The server never holds the phone's secret, a name or the link.
+  for (const r of db.res.values()) for (const secret of [BO, 'Anna', LINK]) assert.ok(!JSON.stringify(r).includes(secret));
+});
+
+test('server: reservations refuse bad input and are removed after a year', async () => {
+  const db = memoryDb(), t0 = 1_000_000_000_000, ME = 'c'.repeat(64);
+  assert.equal((await post(db, '/res', { id: ID })).status, 400);
+  assert.equal((await post(db, '/res/take', { id: ID, me: ME, w: 'BAD ID!' })).status, 400);
+  assert.equal((await post(db, '/res/take', { id: ID, me: ME, w: 'w1' }, t0)).status, 200);
+  await post(db, '/put', { id: 'b'.repeat(64), blob: 'x' }, t0 + KEEP_MS + 1);
+  assert.equal(db.res.size, 0);
+});
+
+test('wish ids: kept when valid, made from the content for old wishes, new ones are random', () => {
+  const [kept, junk] = Wishes.cleanItems([{ text: 'a', id: 'abc123' }, { text: 'b', id: '<script>' }]);
+  assert.equal(kept.id, 'abc123');
+  assert.equal(junk.id, undefined);
+  assert.equal(Wishes.wishId(junk), Wishes.wishId({ text: 'b', url: '' }));
+  assert.notEqual(Wishes.wishId(junk), Wishes.wishId({ text: 'c', url: '' }));
+  assert.match(Wishes.newWishId(), /^[a-z0-9]{8}$/);
+  assert.notEqual(Wishes.newWishId(), Wishes.newWishId());
+});

@@ -6,6 +6,8 @@
    phone with a key made from the link (see js/wishes.js). */
 
 const HEX64 = /^[0-9a-f]{64}$/;
+const WISH_ID = /^[a-z0-9]{1,16}$/;
+export const MAX_RES = 60;                       // reservations kept per list (wishes come and go)
 export const MAX_BLOB = 40_000;                 // 20 long wishes, encrypted, fit well inside this
 export const KEEP_MS = 400 * 24 * 3600 * 1000;  // untouched lists are removed after a bit over a year
 
@@ -17,7 +19,8 @@ const CORS = {
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
 
-/* db: { get(id) -> blob|null, put(id, blob, now), purge(before) } */
+/* db: { get(id) -> blob|null, put(id, blob, now), purge(before),
+        resList(id) -> [{wish, holder}], resTake(id, wish, holder, now) -> bool, resDrop(id, wish, holder) } */
 export async function handle(req, db, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   const path = new URL(req.url).pathname;
@@ -26,6 +29,29 @@ export async function handle(req, db, now = Date.now()) {
 
   const b = await req.json().catch(() => null);
   if (!b || !HEX64.test(b.id || '')) return json({ error: 'bad_request' }, 400);
+
+  if (path.startsWith('/res')) {
+    if (!HEX64.test(b.me || '')) return json({ error: 'bad_request' }, 400);
+    if (path === '/res') {
+      const rows = await db.resList(b.id);
+      return json({ res: rows.map(r => ({ w: r.wish, mine: r.holder === b.me })) });
+    }
+    if (typeof b.w !== 'string' || !WISH_ID.test(b.w)) return json({ error: 'bad_request' }, 400);
+    if (path === '/res/take') {
+      const rows = await db.resList(b.id);
+      const held = rows.find(r => r.wish === b.w);
+      if (held) return held.holder === b.me ? json({ ok: true }) : json({ error: 'taken' }, 409);
+      if (rows.length >= MAX_RES) return json({ error: 'too_many' }, 413);
+      const got = await db.resTake(b.id, b.w, b.me, now);   // false if someone beat us to it
+      await db.purge(now - KEEP_MS);
+      return got ? json({ ok: true }) : json({ error: 'taken' }, 409);
+    }
+    if (path === '/res/drop') {
+      await db.resDrop(b.id, b.w, b.me);
+      return json({ ok: true });
+    }
+    return json({ error: 'not_found' }, 404);
+  }
 
   if (path === '/get') return json({ blob: await db.get(b.id) });
   if (path === '/put') {

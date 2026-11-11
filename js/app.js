@@ -511,6 +511,7 @@
   function showReveal(giver, recipient) {
     goScreen('reveal');
     document.getElementById('reveal-giver').textContent = giver;
+    rememberMe(giver);
 
     const nameEl = document.getElementById('reveal-recipient');
     const labelEl = document.getElementById('reveal-label');
@@ -553,7 +554,45 @@
   }
 
   // ── Wishlists ──
-  function renderWishes(listEl, items, onRemove, onEdit, editingIndex = -1) {
+  // A secret made once on this phone. Reservations belong to it (see Wishes.reserve).
+  function phoneSecret() {
+    let s = LS.get('phone');
+    if (typeof s !== 'string' || s.length < 32) {
+      s = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+      LS.set('phone', s);
+    }
+    return s;
+  }
+
+  const groupTitle = (link) => { try { return decode(link).name || 'en anden gruppe'; } catch { return 'en anden gruppe'; } };
+
+  // Groups where this phone said "Ja, det er mig", so a wishlist can be copied between them.
+  function rememberMe(name) {
+    const mine = (LS.get('myGroups') || []).filter(g => g.link !== groupLink);
+    mine.unshift({ link: groupLink, name });
+    LS.set('myGroups', mine.slice(0, 20));
+  }
+  const otherGroups = () => (LS.get('myGroups') || []).filter(g => g.link !== groupLink);
+
+  // Lists that were copied between groups are kept the same: saving one saves them all.
+  // Only from this phone, as that's where the list of groups lives.
+  const sameList = (a, b) => a.link === b.link && a.name === b.name;
+  function syncedWith(me) {
+    const set = LS.get('synced') || [];
+    return set.some(g => sameList(g, me)) ? set.filter(g => !sameList(g, me)) : [];
+  }
+  function joinSync(a, b) {
+    const set = LS.get('synced') || [];
+    for (const g of [a, b]) if (!set.some(x => sameList(x, g))) set.push({ link: g.link, name: g.name });
+    LS.set('synced', set);
+  }
+  function leaveSync(me) {
+    LS.set('synced', (LS.get('synced') || []).filter(g => !sameList(g, me)));
+  }
+
+  /* opts: onRemove(i), onEdit(i), editing (index), res (Map wishId -> mine) and onReserve(item).
+     Reservations are only drawn on someone else's list, never on your own. */
+  function renderWishes(listEl, items, opts = {}) {
     listEl.innerHTML = '';
     items.forEach((item, i) => {
       const li = document.createElement('li');
@@ -575,26 +614,89 @@
         a.textContent = item.text ? 'Åbn link' : `Åbn link på ${Wishes.siteName(item.url)}`;
         body.appendChild(a);
       }
+      if (opts.res) {
+        const state = opts.res.get(Wishes.wishId(item));   // true: this phone, false: someone else
+        const row = document.createElement('div');
+        row.className = 'wish-res';
+        if (state === false) {
+          li.classList.add('reserved');
+          row.innerHTML = '<span class="res-tag">Reserveret af en anden</span>';
+        } else {
+          const btn = document.createElement('button');
+          btn.className = state ? 'btn-res mine' : 'btn-res';
+          btn.textContent = state ? '✓ Du køber den · fortryd' : 'Jeg køber den';
+          btn.addEventListener('click', () => opts.onReserve(item));
+          row.appendChild(btn);
+        }
+        body.appendChild(row);
+      }
       li.appendChild(body);
-      if (i === editingIndex) li.classList.add('editing');
-      if (onEdit) {
+      if (i === opts.editing) li.classList.add('editing');
+      if (opts.onEdit) {
         const edit = document.createElement('button');
         edit.className = 'btn-edit';
         edit.setAttribute('aria-label', `Ret ${item.text || Wishes.siteName(item.url)}`);
         edit.textContent = '✎';
-        edit.addEventListener('click', () => onEdit(i));
+        edit.addEventListener('click', () => opts.onEdit(i));
         li.appendChild(edit);
       }
-      if (onRemove) {
+      if (opts.onRemove) {
         const del = document.createElement('button');
         del.className = 'btn-remove';
         del.setAttribute('aria-label', `Fjern ${item.text || Wishes.siteName(item.url)}`);
         del.innerHTML = '&times;';
-        del.addEventListener('click', () => onRemove(i));
+        del.addEventListener('click', () => opts.onRemove(i));
         li.appendChild(del);
       }
       listEl.appendChild(li);
     });
+  }
+
+  // "Jeg køber den" on name's list in this group. redraw() is called whenever it changes.
+  function reservationsFor(name, noteEl, redraw) {
+    const link = groupLink, secret = phoneSecret();
+    const st = { map: null, busy: false };
+
+    // Returns a message if a wish this phone reserved has been deleted (it's let go of).
+    async function fetchMap(items) {
+      const rows = await Wishes.reservations(link, name, secret);
+      const ids = new Set(items.map(Wishes.wishId));
+      const gone = rows.filter(r => r.mine && !ids.has(r.w));
+      for (const r of gone) Wishes.unreserve(link, name, r.w, secret).catch(console.error);
+      st.map = new Map(rows.filter(r => ids.has(r.w)).map(r => [r.w, r.mine]));
+      return gone.length ? 'Et ønske, du havde reserveret, er blevet slettet fra listen.' : '';
+    }
+
+    st.load = async (items) => {
+      noteEl.textContent = '';
+      try {
+        noteEl.textContent = await fetchMap(items);
+      } catch (err) {
+        console.error(err);
+        st.map = null;
+        noteEl.textContent = 'Kunne ikke hente, hvad der er reserveret. Tjek din internetforbindelse.';
+      }
+    };
+
+    st.toggle = async (item, items) => {
+      if (st.busy) return;
+      st.busy = true;
+      const w = Wishes.wishId(item);
+      let msg = '';
+      try {
+        if (st.map.get(w) === true) await Wishes.unreserve(link, name, w, secret);
+        else if (!(await Wishes.reserve(link, name, w, secret))) msg = 'Nogen nåede at reservere det ønske lige før dig.';
+        msg = (await fetchMap(items)) || msg;
+      } catch (err) {
+        console.error(err);
+        msg = 'Kunne ikke gemme. Tjek din internetforbindelse, og prøv igen.';
+      } finally {
+        st.busy = false;
+      }
+      noteEl.textContent = msg;
+      redraw();
+    };
+    return st;
   }
 
   let recipientLoad = 0;   // only the newest request may draw, if someone switches name mid-load
@@ -604,17 +706,30 @@
     const title = document.getElementById('reveal-wishes-title');
     const list = document.getElementById('reveal-wishes-list');
     const status = document.getElementById('reveal-wishes-status');
+    const note = document.getElementById('reveal-res-note');
+    const hint = document.getElementById('reveal-res-hint');
     const retry = document.getElementById('btn-retry-wishes');
+    let items = [];
+    const res = reservationsFor(recipient, note, draw);
+    function draw() {
+      if (load !== recipientLoad) return;
+      renderWishes(list, items, res.map ? { res: res.map, onReserve: (it) => res.toggle(it, items) } : {});
+    }
     title.textContent = `${recipient} ønsker sig`;
     list.innerHTML = '';
+    note.textContent = '';
+    hint.textContent = '';
     status.textContent = 'Henter ønsker…';
     retry.style.display = 'none';
     retry.onclick = () => loadRecipientWishes(recipient);
     try {
-      const items = await Wishes.load(groupLink, recipient);
+      items = await Wishes.load(groupLink, recipient);
       if (load !== recipientLoad) return;
-      renderWishes(list, items);
+      if (items.length) await res.load(items);
+      if (load !== recipientLoad) return;
+      draw();
       status.textContent = items.length ? '' : `${recipient} har ikke skrevet nogen ønsker endnu. Kig forbi igen senere.`;
+      if (items.length && res.map) hint.textContent = `Tryk «Jeg køber den» for at holde styr på, hvad du har købt. ${recipient} kan ikke se det.`;
     } catch (err) {
       if (load !== recipientLoad) return;
       console.error(err);
@@ -625,11 +740,12 @@
 
   function showMyWishes(name, opts = {}) {
     const kid = !!opts.kid;
+    const me = { link: groupLink, name };
     goScreen('wishlist');
     document.getElementById('btn-back-wishlist').onclick = () => goScreen(kid ? 'participants' : 'reveal');
     document.getElementById('wishlist-title').textContent = kid ? `${name}s ønskeliste` : 'Min ønskeliste';
     document.getElementById('wishlist-intro').textContent = kid
-      ? `${name} er ikke med i lodtrækningen. Alle med linket kan se listen og skrive på den.`
+      ? `${name} er ikke med i lodtrækningen. Alle med linket kan se listen og skrive på den. Tryk «Jeg køber den», så andre kan se, at ønsket er taget.`
       : 'Din Secret Santa kan se det, du skriver her. Du kan ændre det når som helst.';
     document.getElementById('wish-text-label').textContent = kid ? `Hvad ønsker ${name} sig?` : 'Hvad ønsker du dig?';
     document.getElementById('wish-hint').textContent = kid
@@ -641,6 +757,7 @@
     btnRemoveKid.onclick = () => removeKid(name);
     const list = document.getElementById('my-wishes-list');
     const status = document.getElementById('my-wishes-status');
+    const note = document.getElementById('my-res-note');
     const error = document.getElementById('my-wishes-error');
     const retry = document.getElementById('btn-retry-my-wishes');
     const form = document.getElementById('wish-form');
@@ -648,12 +765,34 @@
     const urlInput = document.getElementById('wish-url');
     const btnAdd = document.getElementById('btn-add-wish');
     const btnCancel = document.getElementById('btn-cancel-edit');
+    const copyBox = document.getElementById('copy-offer');
+    const syncNote = document.getElementById('sync-note');
     let items = [];
     let saving = false;
     let editing = -1;   // index of the wish being changed, or -1 when adding a new one
+    // On a child's list everyone can reserve. Your own list never shows it: it's a surprise.
+    const res = kid ? reservationsFor(name, note, draw) : null;
+    note.textContent = '';
 
     function draw() {
-      renderWishes(list, items, removeWish, startEdit, editing);
+      renderWishes(list, items, {
+        onRemove: removeWish, onEdit: startEdit, editing,
+        ...(res && res.map ? { res: res.map, onReserve: (it) => res.toggle(it, items) } : {}),
+      });
+    }
+
+    function drawSync() {
+      const others = kid ? [] : syncedWith(me);
+      syncNote.innerHTML = '';
+      syncNote.style.display = others.length ? '' : 'none';
+      if (!others.length) return;
+      const p = document.createElement('p');
+      p.textContent = `Når du retter her fra denne telefon, opdateres din ønskeseddel også i: ${others.map(g => groupTitle(g.link)).join(', ')}.`;
+      const stop = document.createElement('button');
+      stop.className = 'btn-link';
+      stop.textContent = 'Hold denne liste for sig selv';
+      stop.onclick = () => { leaveSync(me); drawSync(); };
+      syncNote.append(p, stop);
     }
 
     function setEditing(i) {
@@ -691,17 +830,27 @@
         await Wishes.save(groupLink, name, next);
         items = next;
         draw();
+        copyBox.style.display = 'none';
         status.textContent = 'Gemt ✓';
-        return true;
       } catch (err) {
         console.error(err);
         status.textContent = '';
         showError(error, 'Kunne ikke gemme. Tjek din internetforbindelse, og prøv igen.');
-        return false;
-      } finally {
         saving = false;
         btnAdd.disabled = false;
+        return false;
       }
+      // Then the same list in the groups it is kept the same with.
+      const others = kid ? [] : syncedWith(me);
+      const failed = [];
+      for (const g of others) {
+        try { await Wishes.save(g.link, g.name, next); } catch (err) { console.error(err); failed.push(groupTitle(g.link)); }
+      }
+      if (failed.length) showError(error, `Gemt her, men kunne ikke opdatere ${failed.join(', ')}. Det sker næste gang du gemmer.`);
+      else if (others.length) status.textContent = `Gemt ✓ – også i ${others.map(g => groupTitle(g.link)).join(', ')}`;
+      saving = false;
+      btnAdd.disabled = false;
+      return true;
     }
 
     async function removeWish(i) {
@@ -727,7 +876,9 @@
         showError(error, 'Linket ser ikke rigtigt ud. Ret det, eller lad feltet stå tomt.');
         return;
       }
-      const wish = { text: typed.text, url };
+      // A changed wish keeps its id, so a reservation stays on it.
+      const id = editing >= 0 ? Wishes.wishId(items[editing]) : Wishes.newWishId();
+      const wish = { text: typed.text, url, id };
       const next = editing >= 0
         ? items.map((it, k) => (k === editing ? wish : it))
         : [...items, wish];
@@ -743,24 +894,57 @@
     btnCancel.onclick = cancelEdit;
     textInput.onkeydown = urlInput.onkeydown = (e) => { if (e.key === 'Enter') addWish(); };
 
+    // An empty list can start as a copy of the one in another group on this phone.
+    async function offerCopy() {
+      copyBox.innerHTML = '';
+      copyBox.style.display = 'none';
+      if (kid || items.length) return;
+      for (const g of otherGroups()) {
+        let theirs;
+        try { theirs = await Wishes.load(g.link, g.name); } catch (err) { console.error(err); continue; }
+        if (!theirs.length || items.length) continue;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline btn-block';
+        btn.textContent = `Kopier min ønskeseddel fra «${groupTitle(g.link)}» (${theirs.length} ${theirs.length === 1 ? 'ønske' : 'ønsker'})`;
+        btn.onclick = async () => {
+          const copy = theirs.map(it => ({ ...it, id: Wishes.wishId(it) }));
+          joinSync(me, g);
+          if (await store(copy)) drawSync();
+          else leaveSync(me);
+        };
+        if (!copyBox.childElementCount) {
+          const p = document.createElement('p');
+          p.className = 'wish-hint';
+          p.textContent = 'Du har allerede en ønskeseddel i en anden gruppe. Kopier den hertil, så holdes de ens, når du retter fra denne telefon.';
+          copyBox.appendChild(p);
+        }
+        copyBox.appendChild(btn);
+        copyBox.style.display = '';
+      }
+    }
+
     // Without the saved list on screen the form stays hidden: saving from a
     // blank start would wipe wishes that are already there.
     async function loadMine() {
       cancelEdit();
       list.innerHTML = '';
       form.style.display = 'none';
+      copyBox.style.display = 'none';
       retry.style.display = 'none';
       hideError(error);
-      status.textContent = 'Henter din ønskeliste…';
+      drawSync();
+      status.textContent = kid ? 'Henter ønskelisten…' : 'Henter din ønskeliste…';
       try {
         items = await Wishes.load(groupLink, name);
+        if (res && items.length) await res.load(items);
         draw();
         status.textContent = '';
         form.style.display = '';
+        offerCopy();
       } catch (err) {
         console.error(err);
         status.textContent = '';
-        showError(error, 'Kunne ikke hente din ønskeliste. Tjek din internetforbindelse.');
+        showError(error, 'Kunne ikke hente ønskelisten. Tjek din internetforbindelse.');
         retry.style.display = '';
       }
     }
